@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using SVS.WeaponSystem;
+using SVS.HealthSystem;
 
-public class Player : MonoBehaviour,IHittable
+public class Player : MonoBehaviour
 {
     public float speed = 2;
 
@@ -16,7 +17,7 @@ public class Player : MonoBehaviour,IHittable
 
     public ScreenBounds screenBounds;
 
-    public int health = 3;
+    public int initialHealthValue = 3;
 
     [SerializeField]
     private Transform liveImagesUIParent;
@@ -25,10 +26,10 @@ public class Player : MonoBehaviour,IHittable
     Rigidbody2D rb2d;
     Vector2 movementVector = Vector2.zero;
 
-    public AudioClip hitClip, deathClip;
-    public AudioSource hitSource;
+    //public AudioClip hitClip, deathClip;
+    //public AudioSource hitSource;
 
-    public GameObject explosionFX;
+   // public GameObject explosionFX;
 
     public bool isAlive = true;
 
@@ -36,6 +37,25 @@ public class Player : MonoBehaviour,IHittable
     public Button menuButton;
 
     [SerializeField] Weapon weapon;
+
+    private Health health;
+    private void OnEnable()
+    {
+        if (health == null)
+        {
+            health = GetComponent<Health>();
+            health.InitializeHealth(initialHealthValue);
+        }
+        health.OnDeath.AddListener(Death);
+        health.OnDeath.AddListener(UpdateUI);
+        health.OnHit.AddListener(UpdateUI);
+    }
+    private void OnDisable()
+    {
+        health.OnDeath.RemoveListener(Death);
+        health.OnDeath.RemoveListener(UpdateUI);
+        health.OnHit.RemoveListener(UpdateUI);
+    }
     private void Awake()
     {
         rb2d = GetComponent<Rigidbody2D>();
@@ -45,13 +65,18 @@ public class Player : MonoBehaviour,IHittable
             lives.Add(item.GetComponent<Image>());
         }
     }
-    // Update is called once per frame
+   
     void Update()
     {
         //get input and move
         Vector2 input = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
         input.Normalize();
-        movementVector = speed * input;  
+        movementVector = speed * input;
+
+        if (!isAlive)
+        {
+            return;
+        }
 
         //shooting
         if (Input.GetKey(KeyCode.Space))
@@ -78,59 +103,16 @@ public class Player : MonoBehaviour,IHittable
 
     public void ReduceLives()
     {
-        health--;
-        for (int i = 0; i < lives.Count; i++)
-        {
-            if (i >= health)
-            {
-                lives[i].color = Color.black;
-            }
-            else
-            {
-                lives[i].color = Color.white;
-            }
-
-        }
-        if (health <= 0)
-        {
-            isAlive = false;
-            hitSource.PlayOneShot(deathClip);
-            GetComponent<Collider2D>().enabled = false;
-            GetComponentInChildren<SpriteRenderer>().enabled = false;
-            StartCoroutine(DestroyCoroutine());
-        }
-        else
-        {
-            hitSource.PlayOneShot(hitClip);
-        }
+        health.GetHit(1, gameObject);
     }
 
 
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.GetComponent<ScreenBounds>() || collision.GetComponent<BottomCollider>())
-            return;
-
-        //Debug.Log(collision.name);
-
-
-        
-        if (health <= 0)
-        {
-            Death();
-        }
-        else
-        {
-            GetHitFeedback();
-        }
-
-       
-    }
+   
     void UpdateUI()
     {
         for (int i = 0; i < lives.Count; i++)
         {
-            if (i >= health)
+            if (i >= health.CurrentHealth)
             {
                 lives[i].color = Color.black;
             }
@@ -141,15 +123,11 @@ public class Player : MonoBehaviour,IHittable
 
         }
     }
-    private void GetHitFeedback()
-    {
-        hitSource.PlayOneShot(hitClip);
-    }
+
 
     private void Death()
     {
         isAlive = false;
-        hitSource.PlayOneShot(deathClip);
         GetComponent<Collider2D>().enabled = false;
         GetComponentInChildren<SpriteRenderer>().enabled = false;
         StartCoroutine(DestroyCoroutine());
@@ -157,24 +135,11 @@ public class Player : MonoBehaviour,IHittable
 
     private IEnumerator DestroyCoroutine()
     {
-        Instantiate(explosionFX, transform.position, Quaternion.identity); ;
-        yield return new WaitForSeconds(deathClip.length);
+        yield return new WaitForSeconds(1);
         Destroy(gameObject);
         loseScreen.Toggle();
         menuButton.interactable = false;
     }
 
-    public void GetHit(int damageValue, GameObject sender)
-    {
-        health -= damageValue;
-        UpdateUI();
-        if (health <= 0)
-        {
-            Death();
-        }
-        else
-        {
-            GetHitFeedback();
-        }
-    }
+   
 }

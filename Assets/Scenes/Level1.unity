@@ -1703,7 +1703,8 @@ PrefabInstance:
       propertyPath: attackPattern
       value: 
       objectReference: {fileID: 11400000, guid: f6aff8793eeaf4d42bc9a4c11ecf1dc3, type: 2}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 6302888174068205709, guid: fa18a1cf33d276e45a7c129a6ba60aac, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: fa18a1cf33d276e45a7c129a6ba60aac, type: 3}
 --- !u!1001 &4429221418295652725
 PrefabInstance:
